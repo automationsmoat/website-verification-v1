@@ -3,8 +3,8 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 const path = require('path');
 
 // MongoDB connection URI and database name
-const uri = "mongodb+srv://admin:<password>@websiteverificationsyst.auswgs2.mongodb.net/?retryWrites=true&w=majority&appName=websiteverificationsystem";
-const DATABASE_NAME = 'your_database_name';
+const uri = "mongodb+srv://admin:r3afdDqdQPnty8uc@websiteverificationsyst.auswgs2.mongodb.net/?retryWrites=true&w=majority&appName=websiteverificationsystem";
+const DATABASE_NAME = 'websitescoring';
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
