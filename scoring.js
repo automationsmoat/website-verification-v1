@@ -1,6 +1,5 @@
 const axios = require('axios');
 const { MongoClient, ServerApiVersion } = require('mongodb');
-const path = require('path');
 
 // MongoDB connection URI and database name
 const uri = "mongodb+srv://admin:r3afdDqdQPnty8uc@websiteverificationsyst.auswgs2.mongodb.net/?retryWrites=true&w=majority&appName=websiteverificationsystem";
@@ -136,8 +135,7 @@ const processBatch = async (batch, selectedLinks) => {
         const selectedLinksCursor = await selectedLinksCollection.find();
         const selectedLinksData = await selectedLinksCursor.toArray();
         const selectedLinks = selectedLinksData.reduce((acc, doc) => {
-            acc[doc.domain] = doc.link;
-            return acc;
+            return {...acc, ...doc.links};
         }, {});
 
         const results = {};

@@ -69,15 +69,19 @@ async function runScraperAndProcessResults() {
 
         console.log(`[${getCurrentTimestamp()}] Reading from output collection...`);
         const outputCollection = database.collection('output');
-        const results = await outputCollection.find().toArray();
+        const outputData = await outputCollection.find().toArray();
 
         const selectedLinks = {};
-        for (const entry of results) {
-            const domain = entry.domain;
-            if (entry.links.length > 0) {
-                selectedLinks[domain] = selectBestLink(entry.links);
-            } else {
-                selectedLinks[domain] = domain; // Use domain itself if no URLs found
+
+        if (outputData.length > 0) {
+            const results = outputData[0].results;
+            for (const domain in results) {
+                const links = results[domain];
+                if (links.length > 0) {
+                    selectedLinks[domain] = selectBestLink(links);
+                } else {
+                    selectedLinks[domain] = domain; // Use domain itself if no URLs found
+                }
             }
         }
 
