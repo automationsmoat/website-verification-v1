@@ -19,7 +19,7 @@ const client = new MongoClient(uri, {
 
 // Axios instance with timeout
 const axiosInstance = axios.create({
-    timeout: 15000 // 10 seconds timeout
+    timeout: 10000 // 10 seconds timeout
 });
 
 // Function to create an insecure Axios instance
