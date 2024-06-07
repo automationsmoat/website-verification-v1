@@ -29,7 +29,7 @@ function createInsecureAxiosInstance() {
     });
 
     return axios.create({
-        timeout: 15000, // 10 seconds timeout
+        timeout: 10000, // 10 seconds timeout
         httpsAgent: agent
     });
 }
