@@ -19,7 +19,7 @@ const client = new MongoClient(uri, {
   }
 });
 
-app.use(bodyParser.json());
+app.use(bodyParser.json()); 
 
 // Function to execute main.js
 function runMainScript() {
