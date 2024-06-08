@@ -1,6 +1,18 @@
 const axios = require('axios');
-const fs = require('fs').promises;
-const path = require('path');
+const { MongoClient, ServerApiVersion } = require('mongodb');
+
+// MongoDB connection URI and database name
+const uri = "mongodb+srv://admin:r3afdDqdQPnty8uc@websiteverificationsyst.auswgs2.mongodb.net/?retryWrites=true&w=majority&appName=websiteverificationsystem";
+const DATABASE_NAME = 'websitescoring';
+
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+    serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+    }
+});
 
 // Function to analyze HTML content
 function analyzeHtml(html) {
@@ -13,7 +25,7 @@ function analyzeHtml(html) {
     ];
 
     const phrases = [
-        'add to cart', 'buy now', 'shop now', 'Add To Bag', 'ADD TO BAG', 
+        'add to cart', 'buy now', 'shop now', 'Add To Bag', 'ADD TO BAG',
         'Buy-Button', 'buy-buttons', 'checkout', 'add to basket', 'sold', 'sold out'
     ];
 
@@ -108,10 +120,24 @@ const processBatch = async (batch, selectedLinks) => {
 };
 
 (async () => {
+    let clientConnection;
     try {
-        const selectedLinksPath = path.resolve(__dirname, 'selectedLinks.json');
-        const selectedLinksData = await fs.readFile(selectedLinksPath, 'utf-8');
-        const selectedLinks = JSON.parse(selectedLinksData);
+        clientConnection = await client.connect();
+        const database = clientConnection.db(DATABASE_NAME);
+
+        const selectedLinksCollection = database.collection('selectedLinks');
+        const scoresCollection = database.collection('scores');
+
+        // Clear the scores collection at the beginning
+        await scoresCollection.deleteMany({});
+        console.log('Cleared scores collection.');
+
+        const selectedLinksCursor = await selectedLinksCollection.find();
+        const selectedLinksData = await selectedLinksCursor.toArray();
+        const selectedLinks = selectedLinksData.reduce((acc, doc) => {
+            return {...acc, ...doc.links};
+        }, {});
+
         const results = {};
         const batchSize = 500; // Process 500 URLs at a time
         const domains = Object.keys(selectedLinks);
@@ -123,22 +149,27 @@ const processBatch = async (batch, selectedLinks) => {
         }
 
         // Adding the status based on ecommerceScore
-        const finalResults = {};
+        const finalResults = [];
         for (const domain in results) {
             if (results[domain].ecommerceScore !== undefined) {
-                finalResults[domain] = {
+                finalResults.push({
+                    domain,
                     ...results[domain],
                     status: results[domain].ecommerceScore >= 5 ? 'true' : 'false'
-                };
+                });
             } else {
-                finalResults[domain] = results[domain];
+                finalResults.push({ domain, ...results[domain] });
             }
         }
 
-        const outputPath = path.resolve(__dirname, 'scores.json');
-        await fs.writeFile(outputPath, JSON.stringify(finalResults, null, 2), 'utf-8');
-        console.log(`Results written to ${outputPath}`);
+        await scoresCollection.insertMany(finalResults);
+
+        console.log(`Results written to the scores collection in MongoDB`);
     } catch (error) {
         console.error('Error:', error.message);
+    } finally {
+        if (clientConnection) {
+            await clientConnection.close();
+        }
     }
 })();

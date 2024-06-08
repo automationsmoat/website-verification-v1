@@ -1,12 +1,23 @@
-// index.js
 const express = require('express');
 const bodyParser = require('body-parser');
-const fs = require('fs').promises;
-const path = require('path');
+const { MongoClient, ServerApiVersion } = require('mongodb');
 const { exec } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// MongoDB connection URI and database name
+const uri = "mongodb+srv://admin:r3afdDqdQPnty8uc@websiteverificationsyst.auswgs2.mongodb.net/?retryWrites=true&w=majority&appName=websiteverificationsystem";
+const DATABASE_NAME = 'websitescoring';
+
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
 
 app.use(bodyParser.json());
 
@@ -23,29 +34,42 @@ function runMainScript() {
     });
 }
 
-// Endpoint to receive URLs and process them
 app.post('/process-urls', async (req, res) => {
     try {
-        // Save the URLs to urls.json
+        // Validate input
         const urls = req.body.urls;
         if (!urls || !Array.isArray(urls)) {
             return res.status(400).send('Invalid input: "urls" should be an array.');
         }
-        const urlsPath = path.resolve(__dirname, 'urls.json');
-        await fs.writeFile(urlsPath, JSON.stringify(urls, null, 2), 'utf-8');
-        console.log('URLs saved to urls.json');
+
+        // Connect to MongoDB
+        await client.connect();
+        const database = client.db(DATABASE_NAME);
+
+        // Clear the URLs collection before inserting new data
+        const urlsCollection = database.collection('urls');
+        await urlsCollection.deleteMany({});
+        console.log('URLs collection cleared');
+
+        // Save URLs to MongoDB
+        await urlsCollection.insertMany(urls.map(url => ({ url })));
+        console.log('URLs saved to MongoDB');
 
         // Run the main script
         await runMainScript();
         console.log('Main script executed successfully');
 
-        // Read and return the contents of scores.json
-        const scoresPath = path.resolve(__dirname, 'scores.json');
-        const scoresData = await fs.readFile(scoresPath, 'utf-8');
+        // Fetch and return the contents of the scores collection
+        const scoresCollection = database.collection('scores');
+        const scoresData = await scoresCollection.find().toArray();
         res.status(200).send(scoresData);
+
     } catch (error) {
         console.error(`Error: ${error}`);
         res.status(500).send(`Internal Server Error: ${error}`);
+    } finally {
+        // Ensure the client will close when you finish/error
+        await client.close();
     }
 });
 

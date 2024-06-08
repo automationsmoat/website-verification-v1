@@ -1,13 +1,25 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { URL } = require('url');
-const fs = require('fs').promises;
-const path = require('path');
+const { MongoClient, ServerApiVersion } = require('mongodb');
 const https = require('https');
+
+// MongoDB connection URI and database name
+const uri = "mongodb+srv://admin:r3afdDqdQPnty8uc@websiteverificationsyst.auswgs2.mongodb.net/?retryWrites=true&w=majority&appName=websiteverificationsystem";
+const DATABASE_NAME = 'websitescoring';
+
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+    serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+    }
+});
 
 // Axios instance with timeout
 const axiosInstance = axios.create({
-    timeout: 15000 // 10 seconds timeout
+    timeout: 10000 // 10 seconds timeout
 });
 
 // Function to create an insecure Axios instance
@@ -17,7 +29,7 @@ function createInsecureAxiosInstance() {
     });
 
     return axios.create({
-        timeout: 15000, // 10 seconds timeout
+        timeout: 10000, // 10 seconds timeout
         httpsAgent: agent
     });
 }
@@ -169,25 +181,39 @@ const scrapeBatch = async (urls, visited, limitPerDomain) => {
 };
 
 (async () => {
+    let clientConnection;
     try {
-        const urlsPath = path.resolve(__dirname, 'urls.json');
-        const urlsData = await fs.readFile(urlsPath, 'utf-8');
-        const urls = JSON.parse(urlsData);
+        clientConnection = await client.connect();
+        const database = clientConnection.db(DATABASE_NAME);
+
+        // Clear the output collection at the beginning
+        const outputCollection = database.collection('output');
+        await outputCollection.deleteMany({});
+        console.log('Cleared output collection.');
+
+        const urlsCollection = database.collection('urls');
+        const urlsCursor = await urlsCollection.find();
+        const urls = await urlsCursor.toArray();
+
         const results = {};
         const visited = new Set();
         const batchSize = 500;
         const limitPerDomain = 150;
 
         for (let i = 0; i < urls.length; i += batchSize) {
-            const batchUrls = urls.slice(i, i + batchSize);
+            const batchUrls = urls.slice(i, i + batchSize).map(doc => doc.url);
             const batchResults = await scrapeBatch(batchUrls, visited, limitPerDomain);
             Object.assign(results, batchResults);
         }
 
-        const outputPath = path.resolve(__dirname, 'output.json');
-        await fs.writeFile(outputPath, JSON.stringify(results, null, 2), 'utf-8');
-        console.log(`Results written to ${outputPath}`);
+        await outputCollection.insertOne({ timestamp: new Date(), results });
+
+        console.log(`Results written to the output collection in MongoDB`);
     } catch (error) {
         console.error('Error:', error.message);
+    } finally {
+        if (clientConnection) {
+            await clientConnection.close();
+        }
     }
 })();

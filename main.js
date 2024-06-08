@@ -1,6 +1,17 @@
 const { exec } = require('child_process');
-const fs = require('fs').promises;
-const path = require('path');
+const { MongoClient, ServerApiVersion } = require('mongodb');
+
+const uri = "mongodb+srv://admin:r3afdDqdQPnty8uc@websiteverificationsyst.auswgs2.mongodb.net/?retryWrites=true&w=majority&appName=websiteverificationsystem";
+const DATABASE_NAME = 'websitescoring';
+
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+    serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+    }
+});
 
 function getLinkDepth(link) {
     return (new URL(link)).pathname.split('/').filter(part => part.length > 0).length;
@@ -33,7 +44,16 @@ function getCurrentTimestamp() {
 }
 
 async function runScraperAndProcessResults() {
+    let clientConnection;
     try {
+        console.log(`[${getCurrentTimestamp()}] Connecting to MongoDB...`);
+        clientConnection = await client.connect();
+        const database = clientConnection.db(DATABASE_NAME);
+
+        console.log(`[${getCurrentTimestamp()}] Clearing selectedLinks collection...`);
+        const selectedLinksCollection = database.collection('selectedLinks');
+        await selectedLinksCollection.deleteMany({});
+
         console.log(`[${getCurrentTimestamp()}] Running scraper script...`);
         await new Promise((resolve, reject) => {
             exec('node scrape.js', (error, stdout, stderr) => {
@@ -47,17 +67,21 @@ async function runScraperAndProcessResults() {
             });
         });
 
-        console.log(`[${getCurrentTimestamp()}] Reading output.json...`);
-        const outputPath = path.resolve(__dirname, 'output.json');
-        const data = await fs.readFile(outputPath, 'utf-8');
-        const results = JSON.parse(data);
+        console.log(`[${getCurrentTimestamp()}] Reading from output collection...`);
+        const outputCollection = database.collection('output');
+        const outputData = await outputCollection.find().toArray();
 
         const selectedLinks = {};
-        for (const domain in results) {
-            if (results[domain].length > 0) {
-                selectedLinks[domain] = selectBestLink(results[domain]);
-            } else {
-                selectedLinks[domain] = domain; // Use domain itself if no URLs found
+
+        if (outputData.length > 0) {
+            const results = outputData[0].results;
+            for (const domain in results) {
+                const links = results[domain];
+                if (links.length > 0) {
+                    selectedLinks[domain] = selectBestLink(links);
+                } else {
+                    selectedLinks[domain] = domain; // Use domain itself if no URLs found
+                }
             }
         }
 
@@ -67,21 +91,9 @@ async function runScraperAndProcessResults() {
             sortedSelectedLinks[domain] = selectedLinks[domain];
         });
 
-        const selectedOutputPath = path.resolve(__dirname, 'selectedLinks.json');
-        console.log(`[${getCurrentTimestamp()}] Writing selected links to ${selectedOutputPath}...`);
-        await fs.writeFile(selectedOutputPath, JSON.stringify(sortedSelectedLinks, null, 2), 'utf-8');
-        console.log(`[${getCurrentTimestamp()}] Selected links written to ${selectedOutputPath}`);
-
-        // Find domains in urls.json but not in selectedLinks.json
-        const urlsPath = path.resolve(__dirname, 'urls.json');
-        const urlsData = await fs.readFile(urlsPath, 'utf-8');
-        const urls = JSON.parse(urlsData);
-        const diff = urls.filter(domain => !selectedLinks.hasOwnProperty(domain));
-
-        const diffOutputPath = path.resolve(__dirname, 'diff.json');
-        console.log(`[${getCurrentTimestamp()}] Writing diff to ${diffOutputPath}...`);
-        await fs.writeFile(diffOutputPath, JSON.stringify(diff, null, 2), 'utf-8');
-        console.log(`[${getCurrentTimestamp()}] Diff written to ${diffOutputPath}`);
+        console.log(`[${getCurrentTimestamp()}] Writing selected links to selectedLinks collection...`);
+        await selectedLinksCollection.insertOne({ timestamp: getCurrentTimestamp(), links: sortedSelectedLinks });
+        console.log(`[${getCurrentTimestamp()}] Selected links written to selectedLinks collection`);
 
         console.log(`[${getCurrentTimestamp()}] Running scoring script...`);
         await new Promise((resolve, reject) => {
@@ -98,7 +110,12 @@ async function runScraperAndProcessResults() {
 
     } catch (error) {
         console.error(`[${getCurrentTimestamp()}] Error:`, error.message);
+    } finally {
+        // Ensures that the client will close when you finish/error
+        if (clientConnection) {
+            await clientConnection.close();
+        }
     }
 }
 
-runScraperAndProcessResults();
+runScraperAndProcessResults().catch(console.dir);
