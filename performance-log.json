@@ -1,0 +1,96 @@
+{
+  "timestamp": "2024-06-09T15:45:20.840Z",
+  "executionTime": 231345.86089999997,
+  "memoryUsage": {
+    "rss": 61464576,
+    "heapTotal": 16793600,
+    "heapUsed": 15562920,
+    "external": 20944803,
+    "arrayBuffers": 18673240
+  },
+  "cpuUsage": [
+    0,
+    0,
+    0
+  ]
+},
+{
+  "timestamp": "2024-06-09T15:47:06.036Z",
+  "executionTime": 79187.46290000004,
+  "memoryUsage": {
+    "rss": 63107072,
+    "heapTotal": 17375232,
+    "heapUsed": 16510512,
+    "external": 21162642,
+    "arrayBuffers": 18891039
+  },
+  "cpuUsage": [
+    0,
+    0,
+    0
+  ]
+},
+{
+  "timestamp": "2024-06-09T15:54:03.086Z",
+  "executionTime": 159462.52860000008,
+  "memoryUsage": {
+    "rss": 66117632,
+    "heapTotal": 19415040,
+    "heapUsed": 17750208,
+    "external": 21573528,
+    "arrayBuffers": 19301925
+  },
+  "cpuUsage": [
+    0,
+    0,
+    0
+  ]
+},
+{
+  "timestamp": "2024-06-09T15:55:47.145Z",
+  "executionTime": 79413.41249999998,
+  "memoryUsage": {
+    "rss": 64376832,
+    "heapTotal": 20520960,
+    "heapUsed": 18571872,
+    "external": 21773795,
+    "arrayBuffers": 19502192
+  },
+  "cpuUsage": [
+    0,
+    0,
+    0
+  ]
+},
+{
+  "timestamp": "2024-06-09T16:46:47.190Z",
+  "executionTime": 207612.81270000013,
+  "memoryUsage": {
+    "rss": 27705344,
+    "heapTotal": 20725760,
+    "heapUsed": 19635456,
+    "external": 22176379,
+    "arrayBuffers": 19904776
+  },
+  "cpuUsage": [
+    0,
+    0,
+    0
+  ]
+},
+{
+  "timestamp": "2024-06-09T16:48:57.571Z",
+  "executionTime": 105681.10100000026,
+  "memoryUsage": {
+    "rss": 35524608,
+    "heapTotal": 19734528,
+    "heapUsed": 15742624,
+    "external": 20756341,
+    "arrayBuffers": 18484738
+  },
+  "cpuUsage": [
+    0,
+    0,
+    0
+  ]
+},
