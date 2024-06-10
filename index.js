@@ -8,6 +8,7 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const LOG_PERFORMANCE = false; // Set this flag to true or false to toggle performance logging
 
 // MongoDB connection URI and database name
 const uri = "mongodb+srv://admin:r3afdDqdQPnty8uc@websiteverificationsyst.auswgs2.mongodb.net/?retryWrites=true&w=majority&appName=websiteverificationsystem";
@@ -55,7 +56,7 @@ function logPerformance(startTime, endTime, logFile) {
 }
 
 app.post('/process-urls', async (req, res) => {
-    const startTime = now();
+    const startTime = LOG_PERFORMANCE ? now() : null;
     const logFile = 'performance-log.json';
 
     try {
@@ -94,8 +95,10 @@ app.post('/process-urls', async (req, res) => {
         // Ensure the client will close when you finish/error
         await client.close();
 
-        const endTime = now();
-        logPerformance(startTime, endTime, logFile);
+        if (LOG_PERFORMANCE) {
+            const endTime = now();
+            logPerformance(startTime, endTime, logFile);
+        }
     }
 });
 
