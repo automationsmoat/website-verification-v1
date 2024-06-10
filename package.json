@@ -4,6 +4,8 @@
     "cheerio": "^1.0.0-rc.12",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "mongodb": "^6.7.0"
+    "mongodb": "^6.7.0",
+    "os": "^0.1.2",
+    "performance-now": "^2.1.0"
   }
 }

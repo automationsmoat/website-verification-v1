@@ -2,9 +2,13 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const { exec } = require('child_process');
+const os = require('os');
+const now = require('performance-now');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const LOG_PERFORMANCE = false; // Set this flag to true or false to toggle performance logging
 
 // MongoDB connection URI and database name
 const uri = "mongodb+srv://admin:r3afdDqdQPnty8uc@websiteverificationsyst.auswgs2.mongodb.net/?retryWrites=true&w=majority&appName=websiteverificationsystem";
@@ -19,7 +23,7 @@ const client = new MongoClient(uri, {
   }
 });
 
-app.use(bodyParser.json()); 
+app.use(bodyParser.json());
 
 // Function to execute main.js
 function runMainScript() {
@@ -34,7 +38,27 @@ function runMainScript() {
     });
 }
 
+function logPerformance(startTime, endTime, logFile) {
+    const performanceData = {
+        timestamp: new Date().toISOString(),
+        executionTime: endTime - startTime,
+        memoryUsage: process.memoryUsage(),
+        cpuUsage: os.loadavg()
+    };
+
+    fs.appendFile(logFile, JSON.stringify(performanceData, null, 2) + ',\n', (err) => {
+        if (err) {
+            console.error(`Error writing to log file: ${err}`);
+        } else {
+            console.log('Performance data logged.');
+        }
+    });
+}
+
 app.post('/process-urls', async (req, res) => {
+    const startTime = LOG_PERFORMANCE ? now() : null;
+    const logFile = 'performance-log.json';
+
     try {
         // Validate input
         const urls = req.body.urls;
@@ -70,6 +94,11 @@ app.post('/process-urls', async (req, res) => {
     } finally {
         // Ensure the client will close when you finish/error
         await client.close();
+
+        if (LOG_PERFORMANCE) {
+            const endTime = now();
+            logPerformance(startTime, endTime, logFile);
+        }
     }
 });
 
